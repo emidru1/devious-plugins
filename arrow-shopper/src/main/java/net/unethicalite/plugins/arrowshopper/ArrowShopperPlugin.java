@@ -138,27 +138,60 @@ public class ArrowShopperPlugin extends Plugin
             {
                 if (!Shop.isOpen()) return;
                 List<Integer> items = Shop.getItems();
-                //No point to implement dynamic buy size. Always buy max amount (50)
                 if (Shop.getStock(892) > 0)
                 {
-                    Shop.buyFifty(892);
+                    switch (config.shopperQuantity())
+                    {
+                        case ONE:
+                            Shop.buyOne(892);
+                            log.info("Buying One");
+                            break;
+                        case FIVE:
+                            Shop.buyFive(892);
+                            log.info("Buying Five");
+                            break;
+                        case TEN:
+                            Shop.buyTen(892);
+                            log.info("Buying Ten");
+                            break;
+                        case FIFTY:
+                            Shop.buyFifty(892);
+                            log.info("Buying Fifty");
+                            break;
+                    }
+
                 }
             }
-            if(type.equals(ArrowShopperType.SELL))
+            if (type.equals(ArrowShopperType.SELL))
             {
                 //click queue with random tick intervals (?)
                 if (!Shop.isOpen()) return;
                 List<Integer> items = Shop.getItems();
                 if (Shop.getStock(892) < 5)
                 {
-                    for (int i = 0; i < 5; i++)
-                    {
-                        Shop.sellOne(892);
-                    }
+                        switch (config.shopperQuantity())
+                        {
+                            case ONE:
+                                Shop.sellOne(892);
+                                log.info("Selling One");
+                                break;
+                            case FIVE:
+                                Shop.sellFive(892);
+                                log.info("Selling Five");
+                                break;
+                            case TEN:
+                                Shop.sellTen(892);
+                                log.info("Selling Ten");
+                                break;
+                            case FIFTY:
+                                Shop.sellFifty(892);
+                                log.info("Selling Fifty");
+                                break;
+                        }
                 }
             }
+        }
     }
-}
     @Override
     protected void shutDown()
     {

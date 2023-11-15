@@ -1,12 +1,12 @@
 [{
-  "projectUrl": "",
+  "projectUrl": "https://discord.gg/QarKVpzR9x",
   "provider": "the worst nh",
-  "name": "nhArrowShopper",
-  "description": "Buys/Sells Rune arrow",
-  "id": "nharrowshopper-plugin",
+  "name": "Arrow Shopper",
+  "description": "Arrow shoppper",
+  "id": "arrowshopper-plugin",
   "releases": [{
-    "date": "2023-11-07",
-    "sha512sum": "EE8FBE70D773C6C28EF90160C8029F80B4A491CF3CC488A702AC4789DE181932D46BDB19F3A32F6291984E5D87226278312EBF56FF7C94C0A83627F0DCA710A8",
+    "date": "2023-11-15",
+    "sha512sum": "2A854D027478813AC76BFC30926F447E016BED864162FC36C7CAF85030DA507960ED492F5BA0719C80608C746A7CB712F64F661C871FDF45CBB0AE7DB678CC8B",
     "version": "0.0.1",
     "url": "https://github.com/emidru1/devious-plugins/blob/master/release/arrow-shopper-0.0.1.jar?raw=true",
     "requires": "^1.0.0"

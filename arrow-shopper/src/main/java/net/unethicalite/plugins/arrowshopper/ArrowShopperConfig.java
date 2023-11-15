@@ -36,4 +36,15 @@ public interface ArrowShopperConfig extends Config
     {
         return ArrowShopperType.BUY;
     }
+
+    @ConfigItem(
+            keyName = "shopQuantity",
+            name = "Arrow quantity",
+            description = "Select quantity of arrows you want to sell/buy per tick",
+            position = 4
+    )
+    default ArrowShopperQuantity shopperQuantity()
+    {
+        return ArrowShopperQuantity.ONE;
+    }
 }

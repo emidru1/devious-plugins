@@ -23,7 +23,7 @@ allprojects {
     group = "net.unethicalite"
 
     project.extra["PluginProvider"] = "the worst nh"
-    project.extra["ProjectSupportUrl"] = ""
+    project.extra["ProjectSupportUrl"] = "https://discord.gg/QarKVpzR9x"
     project.extra["PluginLicense"] = "3-Clause BSD License"
 
     apply<JavaPlugin>()
@@ -67,14 +67,7 @@ allprojects {
             dirMode = 493
             fileMode = 420
         }
-        withType<Jar> {
-            doLast {
-                copy {
-                    from("./build/libs/")
-                    into(System.getProperty("user.home") + "/.openosrs/plugins")
-                }
-            }
-        }
+
         compileKotlin {
             kotlinOptions.jvmTarget = "11"
         }
