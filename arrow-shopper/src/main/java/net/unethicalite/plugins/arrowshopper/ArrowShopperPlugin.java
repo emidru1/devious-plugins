@@ -12,7 +12,6 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
-import net.unethicalite.api.items.Inventory;
 import net.unethicalite.api.items.Shop;
 import org.pf4j.Extension;
 import javax.inject.Inject;
@@ -45,10 +44,8 @@ public class ArrowShopperPlugin extends Plugin
     private Logger log = Logger.getLogger(getName());
     boolean startPlugin;
     Instant botTimer;
-    private Player player;
     boolean initialized = false;
     ArrowShopperType type;
-    private Inventory inventory;
     @Provides
     ArrowShopperConfig provideConfig(ConfigManager configManager)
     {
@@ -77,7 +74,6 @@ public class ArrowShopperPlugin extends Plugin
         {
             return;
         }
-        log.info("Start button pressed");
         if (configButtonClicked.getKey().equals("startPlugin"))
         {
             if (!startPlugin)
@@ -85,16 +81,10 @@ public class ArrowShopperPlugin extends Plugin
                 Player player = client.getLocalPlayer();
                 if (client != null && player != null && client.getGameState() == GameState.LOGGED_IN)
                 {
-                    log.info("starting arrow shopper plugin");
                     startPlugin = true;
                     botTimer = Instant.now();
                     overlayManager.add(overlay);
                     type = config.shopperType();
-                    System.out.println("Shopper type: " + type);
-                }
-                else
-                {
-                    log.info("Start logged ");
                 }
             }
             else
@@ -124,7 +114,7 @@ public class ArrowShopperPlugin extends Plugin
         }
         initialized = true;
     }
-
+    
     @Subscribe
     public void onGameTick(GameTick event)
     {
@@ -144,19 +134,15 @@ public class ArrowShopperPlugin extends Plugin
                     {
                         case ONE:
                             Shop.buyOne(892);
-                            log.info("Buying One");
                             break;
                         case FIVE:
                             Shop.buyFive(892);
-                            log.info("Buying Five");
                             break;
                         case TEN:
                             Shop.buyTen(892);
-                            log.info("Buying Ten");
                             break;
                         case FIFTY:
                             Shop.buyFifty(892);
-                            log.info("Buying Fifty");
                             break;
                     }
 
@@ -164,7 +150,6 @@ public class ArrowShopperPlugin extends Plugin
             }
             if (type.equals(ArrowShopperType.SELL))
             {
-                //click queue with random tick intervals (?)
                 if (!Shop.isOpen()) return;
                 List<Integer> items = Shop.getItems();
                 if (Shop.getStock(892) < 5)
@@ -173,19 +158,15 @@ public class ArrowShopperPlugin extends Plugin
                         {
                             case ONE:
                                 Shop.sellOne(892);
-                                log.info("Selling One");
                                 break;
                             case FIVE:
                                 Shop.sellFive(892);
-                                log.info("Selling Five");
                                 break;
                             case TEN:
-                                Shop.sellTen(892);
-                                log.info("Selling Ten");
+                                Shop.sellTen(892);;
                                 break;
                             case FIFTY:
                                 Shop.sellFifty(892);
-                                log.info("Selling Fifty");
                                 break;
                         }
                 }

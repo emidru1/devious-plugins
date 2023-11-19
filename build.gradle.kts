@@ -9,7 +9,6 @@ buildscript {
 
 plugins {
     `java-library`
-    checkstyle
     kotlin("jvm") version "1.6.21"
 }
 
@@ -29,7 +28,6 @@ allprojects {
     apply<JavaPlugin>()
     apply(plugin = "java-library")
     apply(plugin = "kotlin")
-    apply(plugin = "checkstyle")
 
     repositories {
         mavenCentral()
