@@ -38,7 +38,7 @@ public class StartRun extends BankTask {
 
   @Override
   public void execute() {
-    open(true);
+    open(true); // opens bank's main tab
 
     if (!Inventory.isEmpty()) {
       final Item gemBag = Bank.Inventory.getFirst(Predicates.nameContains("gem bag", false));

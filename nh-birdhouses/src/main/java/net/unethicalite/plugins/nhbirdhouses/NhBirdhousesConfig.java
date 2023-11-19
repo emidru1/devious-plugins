@@ -3,6 +3,7 @@ package net.unethicalite.plugins.nhbirdhouses;
 import net.runelite.client.config.Button;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
+import net.unethicalite.plugins.nhbirdhouses.utils.Constants;
 import net.unethicalite.plugins.nhbirdhouses.utils.Log;
 
 @ConfigGroup("nhbirdhouses")

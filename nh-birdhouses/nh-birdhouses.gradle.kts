@@ -2,8 +2,8 @@ import ProjectVersions.unethicaliteVersion
 
 version = "0.0.1"
 
-project.extra["PluginName"] = "Nh Birdhouses"
-project.extra["PluginDescription"] = "Nh Birdhouse runner"
+project.extra["PluginName"] = "nhBirdhouses"
+project.extra["PluginDescription"] = "Automatic birdhouse runner plugin"
 
 dependencies {
     annotationProcessor(Libraries.lombok)

@@ -6,6 +6,7 @@ import net.runelite.api.ItemID;
 
 @AllArgsConstructor
 @Getter
+
 public enum Log {
     NORMAL(ItemID.LOGS),
     OAK(ItemID.OAK_LOGS),

@@ -58,7 +58,6 @@ public abstract class BankTask extends Task {
     if (Bank.isOpen()) {
       if (openMainTab) {
         Bank.openMainTab();
-
         Time.sleepTicksUntil(Bank::isMainTabOpen, 2);
       }
 
