@@ -101,7 +101,6 @@ public class NhBirdhousesPlugin extends Plugin
             }
             else
             {
-
                 reset();
             }
         }
@@ -173,15 +172,17 @@ public class NhBirdhousesPlugin extends Plugin
         if (tree == null) {
             return false;
         }
-        log.info("tree: " + tree.getName());
         return true;
     }
     public void teleportUsingTreeToValley() {
-        TileObject tree = TileObjects.getNearest(i -> Constants.MAGIC_MUSHTREE_IDS.contains(i.getId()));
+        /*TileObject tree = TileObjects.getNearest(i -> Constants.MAGIC_MUSHTREE_IDS.contains(i.getId()));
+        if (tree == null) {
+            return;
+        }
 
         GameThread.invoke(() -> tree.interact(0));
         Time.sleepTicksUntil(
-                () -> Widgets.isVisible(Widgets.get(WidgetInfo.FOSSIL_MUSHROOM_TELEPORT)), 15);
+                () -> Widgets.isVisible(Widgets.get(WidgetInfo.FOSSIL_MUSHROOM_TELEPORT)), 15);*/
 
         Widget mushroomValleyWidget = Widgets.get(WidgetInfo.FOSSIL_MUSHROOM_VALLEY);
         if (!Widgets.isVisible(mushroomValleyWidget)) {
@@ -194,8 +195,6 @@ public class NhBirdhousesPlugin extends Plugin
                 mushroomValleyWidget.getIndex(),
                 mushroomValleyWidget.getId());
 
-        Time.sleepTicksUntil(() -> Players.getLocal().getWorldLocation().getRegionID() == 14906, 5);
-        Time.sleepTicks(2);
     }
     public int getSeedId() {
         for (int id : Constants.BIRD_HOUSE_SEED_IDS) {
@@ -219,9 +218,7 @@ public class NhBirdhousesPlugin extends Plugin
         return true;
     }
     public boolean isPlayerInHouseOnTheHill() {
-        boolean test = Players.getLocal().getWorldLocation().getRegionID() == 14906;
-        log.info("Is in house on hilL? " + test);
-        return Players.getLocal().getWorldLocation().getRegionID() == 14906;
+        return Players.getLocal().getWorldLocation().getRegionID() == 14908;
     }
     public NhBirdhousesState getNextState() {
         if(currentState == null) {
