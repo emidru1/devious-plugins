@@ -47,7 +47,7 @@ public class ArrowShopperPlugin extends Plugin
     boolean initialized = false;
     ArrowShopperType type;
     @Provides
-    ArrowShopperConfig provideConfig(ConfigManager configManager)
+    public ArrowShopperConfig getConfig(ConfigManager configManager)
     {
         return configManager.getConfig(ArrowShopperConfig.class);
     }

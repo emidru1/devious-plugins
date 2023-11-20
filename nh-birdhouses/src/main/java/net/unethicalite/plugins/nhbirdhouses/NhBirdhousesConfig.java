@@ -3,11 +3,11 @@ package net.unethicalite.plugins.nhbirdhouses;
 import net.runelite.client.config.Button;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
-import net.unethicalite.plugins.nhbirdhouses.utils.Constants;
+import net.runelite.client.config.Config;
 import net.unethicalite.plugins.nhbirdhouses.utils.Log;
 
 @ConfigGroup("nhbirdhouses")
-public interface NhBirdhousesConfig extends net.runelite.client.config.Config {
+public interface NhBirdhousesConfig extends Config {
     @ConfigItem(
             keyName = "birdhouseRun",
             name = "Birdhouse run",
@@ -26,14 +26,9 @@ public interface NhBirdhousesConfig extends net.runelite.client.config.Config {
         return Log.YEW;
     }
 
-    @ConfigItem(
-            keyName = "startButton",
-            name = "Force Start/Stop",
-            description =
-                    "The script should automatically start and stop. Use this button for manual "
-                            + "overrides.",
-            position = Integer.MAX_VALUE)
-    default Button startButton() {
+    @ConfigItem(keyName = "startPlugin", name = "Start/Stop", description = "", position = 1, title = "startPlugin")
+    default Button startPlugin()
+    {
         return new Button();
     }
 }
