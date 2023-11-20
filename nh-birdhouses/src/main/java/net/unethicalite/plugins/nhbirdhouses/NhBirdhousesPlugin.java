@@ -140,7 +140,7 @@ public class NhBirdhousesPlugin extends Plugin
         if(!inventoryIsEmpty()) {
             Bank.depositInventory();
         }
-        Bank.depositEquipment();
+        //Bank.depositEquipment(); // disabled for testing purposes for tele out
         Bank.withdraw(
                 i -> i.getId() == ItemID.IMCANDO_HAMMER || i.getId() == ItemID.HAMMER,
                 1,
@@ -148,18 +148,19 @@ public class NhBirdhousesPlugin extends Plugin
         Bank.withdraw(ItemID.CHISEL, 1, Bank.WithdrawMode.ITEM);
         Bank.withdraw(config.logs().getId(), 4, Bank.WithdrawMode.ITEM);
         Bank.withdraw(getSeedId(), 40, Bank.WithdrawMode.ITEM);
+        Bank.withdraw(Predicates.ids(Constants.DIGSITE_PENDANT_IDS), 1, Bank.WithdrawMode.ITEM);
         log.info("Inventory has everything needed, switching state");
     }
     public boolean inventoryHasEverything() {
         return (Inventory.contains(ItemID.IMCANDO_HAMMER, ItemID.HAMMER) || Equipment.contains(
                 ItemID.IMCANDO_HAMMER))
                 && Inventory.contains(ItemID.CHISEL)
-
+                && (Inventory.contains(Predicates.ids(Constants.DIGSITE_PENDANT_IDS))
                 && Inventory.getCount(config.logs().getId()) == 4
-                && Inventory.getCount(true, Predicates.ids(Constants.BIRD_HOUSE_SEED_IDS)) == 40;
+                && Inventory.getCount(true, Predicates.ids(Constants.BIRD_HOUSE_SEED_IDS)) == 40);
     }
     public void teleportUsingPendant() {
-        Item pendant = Inventory.getFirst(Predicates.ids(Constants.DIGSITE_PENDANT_IDS));
+        final Item pendant = Inventory.getFirst(Predicates.ids(Constants.DIGSITE_PENDANT_IDS));
         if(pendant == null) {
             return;
         }
@@ -172,6 +173,7 @@ public class NhBirdhousesPlugin extends Plugin
         if (tree == null) {
             return false;
         }
+        log.info("tree: " + tree.getName());
         return true;
     }
     public void teleportUsingTreeToValley() {
@@ -212,6 +214,15 @@ public class NhBirdhousesPlugin extends Plugin
     public boolean inventoryIsEmpty() {
         return Inventory.isEmpty();
     }
+    public boolean isPlayerInVerdantValley() {
+
+        return true;
+    }
+    public boolean isPlayerInHouseOnTheHill() {
+        boolean test = Players.getLocal().getWorldLocation().getRegionID() == 14906;
+        log.info("Is in house on hilL? " + test);
+        return Players.getLocal().getWorldLocation().getRegionID() == 14906;
+    }
     public NhBirdhousesState getNextState() {
         if(currentState == null) {
             return NhBirdhousesState.START_BANK;
@@ -219,11 +230,11 @@ public class NhBirdhousesPlugin extends Plugin
         if(bankIsOpen() && !inventoryHasEverything()) {
             return NhBirdhousesState.WITHDRAW_ITEMS;
         }
-        if(inventoryHasEverything()) {
+        if(inventoryHasEverything() && !isPlayerInHouseOnTheHill()) {
             closeBank();
             return NhBirdhousesState.TELEPORT_DIGSITE;
         }
-        if(inventoryHasEverything() && isMushroomTreeNearby()) {
+        if(isPlayerInHouseOnTheHill() && isMushroomTreeNearby()) {
             return NhBirdhousesState.USE_MUSHROOM_TREE_HOUSE;
         }
 
@@ -241,6 +252,7 @@ public class NhBirdhousesPlugin extends Plugin
                 startBank();
                 break;
             case WITHDRAW_ITEMS:
+                Time.sleepTicks(10);
                 withdrawItems();
                 break;
             case TELEPORT_DIGSITE:
@@ -250,13 +262,13 @@ public class NhBirdhousesPlugin extends Plugin
                 teleportUsingTreeToValley();
                 break;
             case VALLEY_HOUSE_1:
-
+                log.info("Valley house 1 state reached");
                 break;
             case VALLEY_HOUSE_2:
-
+                log.info("Valley house 2 state reached");
                 break;
             case USE_MUSHROOM_TREE_VALLEY:
-
+                log.info("Use mushroom tree in verdant valley state reached");
                 break;
         }
     }
