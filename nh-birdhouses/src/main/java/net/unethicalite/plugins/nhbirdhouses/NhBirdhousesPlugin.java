@@ -30,10 +30,12 @@ import net.unethicalite.api.commons.Time;
 import net.unethicalite.api.entities.NPCs;
 import net.unethicalite.api.entities.Players;
 import net.unethicalite.api.game.GameThread;
+import net.unethicalite.api.game.Vars;
 import net.unethicalite.api.items.Bank;
 import net.unethicalite.api.items.Equipment;
 import net.unethicalite.api.items.Inventory;
 import net.unethicalite.api.items.Shop;
+import net.unethicalite.api.movement.Reachable;
 import net.unethicalite.api.plugins.LoopedPlugin;
 import net.unethicalite.api.widgets.Dialog;
 import net.unethicalite.api.widgets.Widgets;
@@ -55,6 +57,8 @@ public class NhBirdhousesPlugin extends LoopedPlugin
     @Inject
     NhBirdhousesConfig config;
     @Inject
+    NhBirdhousesPlugin plugin;
+    @Inject
     private OverlayManager overlayManager;
     @Inject
     private Client client;
@@ -62,6 +66,10 @@ public class NhBirdhousesPlugin extends LoopedPlugin
     boolean startPlugin;
     Instant botTimer;
     private boolean isCurrentTaskComplete = true;
+    private TileObject birdHouse;
+    private TileObject space;
+    private TileObject emptyBirdhouse;
+    private final List<Integer> emptied = new ArrayList<>();
     NhBirdhousesState currentState;
     //Add list of tasks, fill list of tasks with different tasks stored in different classes with loop conditions exec?
     @Provides
@@ -227,20 +235,101 @@ public class NhBirdhousesPlugin extends LoopedPlugin
         return Inventory.isEmpty();
     }
     public boolean isPlayerInVerdantValley() {
-
-        return true;
+        return Players.getLocal().getWorldLocation().getRegionID() == 14906;
     }
     public boolean isPlayerInHouseOnTheHill() {
         return Players.getLocal().getWorldLocation().getRegionID() == 14908;
     }
-    public boolean isValleyFirstBirdhouseBuilt() {
-        return false;
-    }
     public boolean verdantValleyBirdhousesBuilt() {
-        return true && true;
+        return NhBirdhousesSpace.getNearest(NhBirdhousesObjectState.EMPTY) != null;
     }
     public boolean inventoryHasEverythingForMeadow() {
         return true && true && true;
+    }
+    public void emptied(int spaceId) {
+        emptied.add(spaceId);
+    }
+
+    public boolean isEmptied(int spaceId) {
+        return emptied.contains(spaceId);
+    }
+    public void emptyBirdhouse() {
+        birdHouse = null;
+
+        for (NhBirdhousesSpace space : NhBirdhousesSpace.values()) {
+            if (NhBirdhousesObjectState.fromVarpValue(Vars.getVarp(space.getVarp().getId()))
+                    == NhBirdhousesObjectState.SEEDED
+                    && !plugin.isEmptied(space.getObjectId())) {
+                final TileObject tempBirdHouse = TileObjects.getNearest(space.getObjectId());
+
+                if (tempBirdHouse == null) {
+                    continue;
+                }
+
+                if (birdHouse == null
+                        || Players.getLocal().distanceTo(tempBirdHouse)
+                        < Players.getLocal().distanceTo(birdHouse)) {
+                    birdHouse = tempBirdHouse;
+                }
+            }
+        }
+
+        if(birdHouse != null && Reachable.isInteractable(birdHouse)) {
+            GameThread.invoke(() -> birdHouse.interact(2));
+            if (!Time.sleepTicksUntil(() -> Inventory.contains(ItemID.CLOCKWORK), 15)) {
+                return;
+            }
+
+            plugin.emptied(birdHouse.getId());
+        }
+    }
+    public void craftBirdhouse() {
+        if(Inventory.contains(ItemID.CLOCKWORK)) {
+            final Item chisel = Inventory.getFirst(ItemID.CHISEL);
+            final Item logs = Inventory.getFirst((i) -> Constants.LOG_IDS.contains(i.getId()));
+
+            if (chisel == null || logs == null) {
+                return;
+            }
+
+            chisel.useOn(logs);
+            Time.sleepTicksUntil(() -> !Inventory.contains(ItemID.CLOCKWORK), 5);
+
+        }
+    }
+    public void buildBirdhouse() {
+        if(Inventory.contains((i) -> Constants.BIRD_HOUSE_ITEM_IDS.contains(i.getId()))) {
+            space = NhBirdhousesSpace.getNearest(NhBirdhousesObjectState.EMPTY);
+
+            if (space == null) {
+                return;
+            }
+
+            GameThread.invoke(() -> space.interact(0));
+            Time.sleepTicksUntil(
+                    () -> !Inventory.contains((i) -> Constants.BIRD_HOUSE_ITEM_IDS.contains(i.getId())), 5);
+
+        }
+    }
+    public void addSeeds() {
+        emptyBirdhouse = NhBirdhousesSpace.getNearest(NhBirdhousesObjectState.BUILT);
+
+        if(emptyBirdhouse != null) {
+            return;
+        }
+        final Item seeds = Inventory.getFirst((i) -> Constants.BIRD_HOUSE_SEED_IDS.contains(i.getId()));
+        if (seeds == null) {
+            return;
+        }
+
+        final int quantity = seeds.getQuantity();
+        GameThread.invoke(() -> seeds.useOn(emptyBirdhouse));
+
+        Time.sleepTicksUntil(
+                () ->
+                        Inventory.getCount(true, (i) -> Constants.BIRD_HOUSE_SEED_IDS.contains(i.getId()))
+                                < quantity,
+                5);
     }
     public NhBirdhousesState getCurrentState() {
         log.info("Checking next state from current state: " + currentState);
@@ -250,20 +339,17 @@ public class NhBirdhousesPlugin extends LoopedPlugin
         if(bankIsOpen() && !inventoryHasEverything()) {
             return NhBirdhousesState.WITHDRAW_ITEMS;
         }
-        if(inventoryHasEverything() && !isPlayerInHouseOnTheHill()) {
+        if(inventoryHasEverything() && !isPlayerInHouseOnTheHill() && !isPlayerInVerdantValley()) {
             return NhBirdhousesState.TELEPORT_DIGSITE;
         }
-        if(isPlayerInHouseOnTheHill() && isMushroomTreeNearby()) {
+        if(isPlayerInHouseOnTheHill() && isMushroomTreeNearby() && !isPlayerInVerdantValley()) {
             return NhBirdhousesState.USE_MUSHROOM_TREE_HOUSE;
         }
         //Works until here, birdhouse emptying -> building logic is not implemented yet
         // Create method to empty birdhouse by ID, and build it in empty spot nearby.
         // Upon teleporting to verdant valley, state changes back to TELEPORT_DIGSITE, ending up in a loop.
         if(isPlayerInVerdantValley() && inventoryHasEverything()) {
-            return NhBirdhousesState.VALLEY_HOUSE_1;
-        }
-        if(isPlayerInVerdantValley() && inventoryHasEverything() && isValleyFirstBirdhouseBuilt()) {
-            return NhBirdhousesState.VALLEY_HOUSE_2;
+            return NhBirdhousesState.VALLEY_HOUSES;
         }
         if(verdantValleyBirdhousesBuilt() && inventoryHasEverythingForMeadow()) {
             return NhBirdhousesState.USE_MUSHROOM_TREE_VALLEY;
@@ -299,16 +385,13 @@ public class NhBirdhousesPlugin extends LoopedPlugin
                 }
                 return -1;
             case USE_MUSHROOM_TREE_HOUSE:
-                if (isPlayerInHouseOnTheHill()) {
                     teleportUsingTreeToValley();
-                }
                 return -1;
-            case VALLEY_HOUSE_1:
-                log.info("Valley house 1 state reached");
-
-                return -1;
-            case VALLEY_HOUSE_2:
-                log.info("Valley house 2 state reached");
+            case VALLEY_HOUSES:
+                emptyBirdhouse();
+                craftBirdhouse();
+                buildBirdhouse();
+                addSeeds();
                 return -1;
             case USE_MUSHROOM_TREE_VALLEY:
                 log.info("Use mushroom tree in verdant valley state reached");
