@@ -34,13 +34,15 @@ import net.unethicalite.api.items.Bank;
 import net.unethicalite.api.items.Equipment;
 import net.unethicalite.api.items.Inventory;
 import net.unethicalite.api.items.Shop;
+import net.unethicalite.api.plugins.LoopedPlugin;
 import net.unethicalite.api.widgets.Dialog;
 import net.unethicalite.api.widgets.Widgets;
 import net.unethicalite.plugins.nhbirdhouses.utils.Constants;
 import org.pf4j.Extension;
 import net.runelite.api.NPC;
 import net.unethicalite.api.entities.TileObjects;
-
+import static net.unethicalite.api.commons.Time.sleep;
+import static net.unethicalite.api.commons.Time.sleepUntil;
 @Extension
 @PluginDescriptor(
         name = "nhBirdhouses",
@@ -48,7 +50,7 @@ import net.unethicalite.api.entities.TileObjects;
         enabledByDefault = false)
 
 @Singleton
-public class NhBirdhousesPlugin extends Plugin
+public class NhBirdhousesPlugin extends LoopedPlugin
 {
     @Inject
     NhBirdhousesConfig config;
@@ -59,8 +61,9 @@ public class NhBirdhousesPlugin extends Plugin
     private Logger log = Logger.getLogger(getName());
     boolean startPlugin;
     Instant botTimer;
-    boolean firstState = false;
+    private boolean isCurrentTaskComplete = true;
     NhBirdhousesState currentState;
+    //Add list of tasks, fill list of tasks with different tasks stored in different classes with loop conditions exec?
     @Provides
     public NhBirdhousesConfig getConfig(ConfigManager configManager)
     {
@@ -71,14 +74,14 @@ public class NhBirdhousesPlugin extends Plugin
     {
         botTimer = null;
         startPlugin = false;
-        currentState = null;
+        currentState = NhBirdhousesState.START_BANK;
     }
 
     private void reset()
     {
         startPlugin = false;
         botTimer = null;
-        currentState = null;
+        currentState = NhBirdhousesState.START_BANK;
     }
 
     @Subscribe
@@ -109,32 +112,37 @@ public class NhBirdhousesPlugin extends Plugin
     public void startBank() {
         TileObject bankObject = TileObjects.getNearest(Predicates.ids(Constants.BANK_OBJECT_IDS));
         if (bankObject == null) {
+            //log.info("Bank object is null");
             return;
         }
         if (bankObject != null) {
-            if (bankObject.hasAction("Bank")) {
-                GameThread.invoke(() -> bankObject.interact("Bank"));
-            } else if (bankObject.hasAction("Use")) {
-                GameThread.invoke(() -> bankObject.interact("Use"));
-            } else {
-                GameThread.invoke(() -> bankObject.interact(0));
-            }
+            //log.info("Bank object is NOT null");
+            bankObject.interact("Use");
+            sleepUntil(() -> Bank.isOpen(), 1000);
         } else {
             NPC bankNpc = NPCs.getNearest(Predicates.ids(Constants.BANK_NPC_IDS));
 
             if (bankNpc == null) {
                 log.info("Bank NPC is null");
+                return;
             }
             if (bankNpc.hasAction("Bank")) {
-                GameThread.invoke(() -> bankNpc.interact("Bank"));
+                bankNpc.interact("Bank");
+                sleepUntil(() -> Bank.isOpen(), 1000);
             } else {
                 GameThread.invoke(() -> bankNpc.interact(0));
+                sleepUntil(() -> Bank.isOpen(), 1000);
             }
         }
 
 
     }
     public void withdrawItems() {
+        /*
+        * If teleport widget is open, player is teleported as expected. Actions need task scheduler to process asynchronous tasks
+        * Currently asynchronous tasks upon completion cannot update plugin state successfully, so it gets stuck and state changes to STOP
+        * Upon starting the plugin (Startbutton clicked), task list should be loaded (check melxin's zulrah plugin for reference)
+        * */
         Bank.openMainTab();
         if(!inventoryIsEmpty()) {
             Bank.depositInventory();
@@ -146,8 +154,9 @@ public class NhBirdhousesPlugin extends Plugin
                 Bank.WithdrawMode.ITEM);
         Bank.withdraw(ItemID.CHISEL, 1, Bank.WithdrawMode.ITEM);
         Bank.withdraw(config.logs().getId(), 4, Bank.WithdrawMode.ITEM);
-        Bank.withdraw(getSeedId(), 40, Bank.WithdrawMode.ITEM);
         Bank.withdraw(Predicates.ids(Constants.DIGSITE_PENDANT_IDS), 1, Bank.WithdrawMode.ITEM);
+        Bank.withdraw(getSeedId(), 40, Bank.WithdrawMode.ITEM);
+
         log.info("Inventory has everything needed, switching state");
     }
     public boolean inventoryHasEverything() {
@@ -159,11 +168,14 @@ public class NhBirdhousesPlugin extends Plugin
                 && Inventory.getCount(true, Predicates.ids(Constants.BIRD_HOUSE_SEED_IDS)) == 40);
     }
     public void teleportUsingPendant() {
+        closeBank();
+
         final Item pendant = Inventory.getFirst(Predicates.ids(Constants.DIGSITE_PENDANT_IDS));
         if(pendant == null) {
             return;
         }
         pendant.interact("Rub");
+        Time.sleep(1000);
         Time.sleepTicksUntil(Dialog::isViewingOptions, 5);
         Dialog.chooseOption(2);
     }
@@ -175,20 +187,21 @@ public class NhBirdhousesPlugin extends Plugin
         return true;
     }
     public void teleportUsingTreeToValley() {
-        /*TileObject tree = TileObjects.getNearest(i -> Constants.MAGIC_MUSHTREE_IDS.contains(i.getId()));
+        TileObject tree = TileObjects.getNearest(i -> Constants.MAGIC_MUSHTREE_IDS.contains(i.getId()));
         if (tree == null) {
             return;
         }
 
         GameThread.invoke(() -> tree.interact(0));
         Time.sleepTicksUntil(
-                () -> Widgets.isVisible(Widgets.get(WidgetInfo.FOSSIL_MUSHROOM_TELEPORT)), 15);*/
+                () -> Widgets.isVisible(Widgets.get(WidgetInfo.FOSSIL_MUSHROOM_TELEPORT)), 15);
 
         Widget mushroomValleyWidget = Widgets.get(WidgetInfo.FOSSIL_MUSHROOM_VALLEY);
         if (!Widgets.isVisible(mushroomValleyWidget)) {
             return;
         }
 
+        Time.sleepTicks(5);
         mushroomValleyWidget.interact(
                 0,
                 MenuAction.WIDGET_CONTINUE.getId(),
@@ -220,21 +233,41 @@ public class NhBirdhousesPlugin extends Plugin
     public boolean isPlayerInHouseOnTheHill() {
         return Players.getLocal().getWorldLocation().getRegionID() == 14908;
     }
-    public NhBirdhousesState getNextState() {
-        if(currentState == null) {
+    public boolean isValleyFirstBirdhouseBuilt() {
+        return false;
+    }
+    public boolean verdantValleyBirdhousesBuilt() {
+        return true && true;
+    }
+    public boolean inventoryHasEverythingForMeadow() {
+        return true && true && true;
+    }
+    public NhBirdhousesState getCurrentState() {
+        log.info("Checking next state from current state: " + currentState);
+        if(currentState == NhBirdhousesState.START_BANK && !inventoryHasEverything()) {
             return NhBirdhousesState.START_BANK;
         }
         if(bankIsOpen() && !inventoryHasEverything()) {
             return NhBirdhousesState.WITHDRAW_ITEMS;
         }
         if(inventoryHasEverything() && !isPlayerInHouseOnTheHill()) {
-            closeBank();
             return NhBirdhousesState.TELEPORT_DIGSITE;
         }
         if(isPlayerInHouseOnTheHill() && isMushroomTreeNearby()) {
             return NhBirdhousesState.USE_MUSHROOM_TREE_HOUSE;
         }
-
+        //Works until here, birdhouse emptying -> building logic is not implemented yet
+        // Create method to empty birdhouse by ID, and build it in empty spot nearby.
+        // Upon teleporting to verdant valley, state changes back to TELEPORT_DIGSITE, ending up in a loop.
+        if(isPlayerInVerdantValley() && inventoryHasEverything()) {
+            return NhBirdhousesState.VALLEY_HOUSE_1;
+        }
+        if(isPlayerInVerdantValley() && inventoryHasEverything() && isValleyFirstBirdhouseBuilt()) {
+            return NhBirdhousesState.VALLEY_HOUSE_2;
+        }
+        if(verdantValleyBirdhousesBuilt() && inventoryHasEverythingForMeadow()) {
+            return NhBirdhousesState.USE_MUSHROOM_TREE_VALLEY;
+        }
         return NhBirdhousesState.STOP;
     }
     @Override
@@ -243,42 +276,53 @@ public class NhBirdhousesPlugin extends Plugin
 
     }
 
-    public void handleState() {
+    @Override
+    public int loop() {
+        final Player localPlayer = client.getLocalPlayer();
+        if (localPlayer == null)
+        {
+            return -1;
+        }
+        currentState = getCurrentState();
+
         switch(currentState) {
             case START_BANK:
                 startBank();
-                break;
             case WITHDRAW_ITEMS:
-                Time.sleepTicks(10);
-                withdrawItems();
-                break;
+                if(bankIsOpen()) {
+                    withdrawItems();
+                }
+                return -1;
             case TELEPORT_DIGSITE:
-                teleportUsingPendant();
-                break;
+                if (inventoryHasEverything()) {
+                    teleportUsingPendant();
+                }
+                return -1;
             case USE_MUSHROOM_TREE_HOUSE:
-                teleportUsingTreeToValley();
-                break;
+                if (isPlayerInHouseOnTheHill()) {
+                    teleportUsingTreeToValley();
+                }
+                return -1;
             case VALLEY_HOUSE_1:
                 log.info("Valley house 1 state reached");
-                break;
+
+                return -1;
             case VALLEY_HOUSE_2:
                 log.info("Valley house 2 state reached");
-                break;
+                return -1;
             case USE_MUSHROOM_TREE_VALLEY:
                 log.info("Use mushroom tree in verdant valley state reached");
-                break;
+                return -1;
+            case STOP:
+                return -1;
         }
-    }
+        return -1;
 
+    }
     @Subscribe
     public void onGameTick(GameTick event)
     {
-        if (startPlugin) {
-            log.info("Current state: " + currentState);
 
-            currentState = getNextState();
-            handleState();
-        }
     }
     @Override
     protected void shutDown()
